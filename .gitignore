@@ -1,0 +1,10 @@
+*.pyc
+teste.py
+commit.txt
+vcs.py
+.env
+.idea
+.venv
+tokens
+tst.http
+test.py
