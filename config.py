@@ -14,5 +14,7 @@ class Config:
     CLIENT_X509_CERT_URL = config('CLIENT_X509_CERT_URL')
     UNIVERSE_DOMAIN = config('UNIVERSE_DOMAIN')
 
+    SECRET_KEY = config('SECRET_KEY')
+
 
 env = Config()
