@@ -16,5 +16,7 @@ class Config:
 
     SECRET_KEY = config('SECRET_KEY')
 
+    ORIGINS = eval(config('ORIGINS'))
+
 
 env = Config()
