@@ -8,7 +8,3 @@ class UserNotFoundError(Exception):
 
 class AuthNotPermissionError(Exception):
     pass
-
-
-class InvalidJSONWebTokenError(Exception):
-    pass

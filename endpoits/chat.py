@@ -1,6 +1,6 @@
 from typing import Dict
 
-from exceptions.user import InvalidJSONWebTokenError
+from exceptions.jwt import InvalidJSONWebTokenError
 from config import env
 
 from fastapi import WebSocket, WebSocketDisconnect, APIRouter, HTTPException, Depends

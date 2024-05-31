@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from endpoits import user, chat
+from endpoits import auth, chat
 from config import env
 
 
@@ -16,5 +16,5 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(user.router)
+app.include_router(auth.router)
 app.include_router(chat.router)

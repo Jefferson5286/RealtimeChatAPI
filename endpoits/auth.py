@@ -1,8 +1,9 @@
 from asyncio import to_thread
 
-from services.user import *
+from services.auth import *
 from exceptions.user import *
-from schemas.user import *
+from exceptions.jwt import *
+from schemas.auth import *
 
 from fastapi import APIRouter, HTTPException, Request, Response
 from fastapi.responses import JSONResponse
@@ -29,21 +30,19 @@ async def login(data: UserLoginSchema) -> JSONResponse:
 
         return JSONResponse({'token': token})
 
-    except UserNotFoundError:
-        raise HTTPException(401, 'Unauthorized!')
-
-    except AuthNotPermissionError:
+    except (UserNotFoundError, AuthNotPermissionError):
         raise HTTPException(401, 'Unauthorized!')
 
 
 @router.get('/refresh')
 async def refresh(request: Request) -> JSONResponse:
     try:
-        last_token = request.headers['Authorization']
-
-        token = await to_thread(refresh_token, last_token)
+        token = await to_thread(refresh_token, request.headers['Authorization'])
 
         return JSONResponse({'token': token})
 
-    except InvalidJSONWebTokenError:
+    except (InvalidJSONWebTokenError, UserNotFoundError, AuthNotPermissionError):
         raise HTTPException(401, 'Unauthorized!')
+
+    except ExpiredJSONWebToken:
+        raise HTTPException(419, 'Connection will expire! authenticate again.')
