@@ -41,8 +41,8 @@ def verify_password(password_literal: str, password_hash: str) -> bool:
 class Token:
     """ Representação abstraída de um token decodificado """
     def __init__(self, **kwargs: Dict[str, str]):
-        self.uuid = kwargs.get('uuid'),
-        self.dest = kwargs.get('dest'),
+        self.uuid = kwargs.get('uuid')
+        self.dest = kwargs.get('dest')
         self.at = kwargs.get('at')
 
 
@@ -90,13 +90,15 @@ class JsonWebToken:
         try:
             data = jwt.decode(token, env.SECRET_KEY, [ALGORITHMS.HS256])
 
-            at = datetime.strptime(data['at'], cls.string_format)
+            at = datetime.strptime(data['at'], cls.string_format).replace(tzinfo=utc)
             now = datetime.now(utc)
 
-            if (at + cls.exp_time) > now:
+            if (at + cls.exp_time) < now:
                 raise ExpiredJSONWebToken()
 
-            return Token(uuid=data['uuid'], dest=data['dest'], at=data['at'])
+            token = Token(uuid=data['uuid'], dest=data['dest'], at=data['at'])
+
+            return token
 
         except JWTError:
             raise InvalidJSONWebTokenError()
@@ -126,7 +128,9 @@ class JsonWebToken:
         conn: Dict[str, str] = dict()
 
         for connection, at in connections.items():
-            if not (datetime.strptime(at, cls.string_format) + cls.exp_time) > datetime.now(utc):
-                conn[connection] = at
+            date = datetime.strptime(at, cls.string_format).replace(tzinfo=utc)
+
+            if not (date + cls.exp_time) < datetime.now(utc):
+                conn.update({connection: at})
 
         return conn

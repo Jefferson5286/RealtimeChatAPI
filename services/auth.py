@@ -96,18 +96,25 @@ def refresh_token(token: str) -> str:
     token_data = JsonWebToken.decode(token)
 
     user_document = client.collection('users').document(token_data.uuid)
-    connections: Dict[str, str] = user_document.get(['connections'])
+    user_document_data = user_document.get().to_dict()
+
+    connections: Dict[str, str] = user_document_data['connections']
 
     if not user_document.get().exists:
         raise UserNotFoundError()
 
     connection = str(uuid4())
 
-    if not JsonWebToken.is_authenticated_token(token_data, user_document['connections']):
+    if not JsonWebToken.is_authenticated_token(token_data, user_document_data['connections']):
         raise AuthNotPermissionError()
 
     token = JsonWebToken.encode(connection, token_data.uuid)
+
+    del connections[token_data.dest]
+
     connections[connection] = token[1]
+
+    connections = JsonWebToken.clear_connections(connections)
 
     user_document.update({'connections': connections})
 
