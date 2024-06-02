@@ -2,9 +2,8 @@ from typing import Dict
 from uuid import uuid4
 
 from firestore import client
-from utils.security import verify_password, encode_password
+from utils.security import verify_password, encode_password, JsonWebToken, Token
 from exceptions.user import *
-from utils.security import JsonWebToken
 
 
 def create_user(data) -> None:
@@ -66,16 +65,16 @@ def login_account(data) -> str:
     token = JsonWebToken.encode(connection, user_uuid)
 
     connections = user_data['connections']
-    connections[connection] = token[1]
+    connections[connection] = token['at']
 
     connections = JsonWebToken.clear_connections(connections)
 
     collection.document(user_uuid).update({'connections': connections})
 
-    return token[0]
+    return token['token']
 
 
-def refresh_token(token: str) -> str:
+def refresh_token(token: Token) -> str:
     """
         Gera uma nova conexão com o usuário. Assim, invalidando o Token fornecido e gerando um novo.
 
@@ -93,29 +92,26 @@ def refresh_token(token: str) -> str:
         AuthNotPermissionError: Quando a conexão do Token (campo 'dest') não for encontrada na lista de conexões de
             usuário alvo
     """
-    token_data = JsonWebToken.decode(token)
 
-    user_document = client.collection('users').document(token_data.uuid)
+    user_document = client.collection('users').document(token.uuid)
     user_document_data = user_document.get().to_dict()
-
-    connections: Dict[str, str] = user_document_data['connections']
 
     if not user_document.get().exists:
         raise UserNotFoundError()
 
+    connections: Dict[str, str] = user_document_data['connections']
     connection = str(uuid4())
 
-    if not JsonWebToken.is_authenticated_token(token_data, user_document_data['connections']):
+    if not JsonWebToken.is_authenticated_token(token, user_document_data['connections']):
         raise AuthNotPermissionError()
 
-    token = JsonWebToken.encode(connection, token_data.uuid)
+    new_token = JsonWebToken.encode(connection, token.uuid)
 
-    del connections[token_data.dest]
+    del connections[token.dest]
 
-    connections[connection] = token[1]
-
+    connections[connection] = new_token['at']
     connections = JsonWebToken.clear_connections(connections)
 
     user_document.update({'connections': connections})
 
-    return token[0]
+    return new_token['token']
