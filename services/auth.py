@@ -1,8 +1,7 @@
-from typing import Dict
 from uuid import uuid4
 
 from firestore import client
-from utils.security import verify_password, encode_password, JsonWebToken, Token
+from utils.security import *
 from exceptions.user import *
 
 
@@ -62,12 +61,12 @@ def login_account(data) -> str:
 
     connection = str(uuid4())
 
-    token = JsonWebToken.encode(connection, user_uuid)
+    token = JWTManager.encode(connection, user_uuid)
 
     connections = user_data['connections']
     connections[connection] = token['at']
 
-    connections = JsonWebToken.clear_connections(connections)
+    connections = clear_token_connections(connections)
 
     collection.document(user_uuid).update({'connections': connections})
 
@@ -83,10 +82,6 @@ def refresh_token(token: Token) -> str:
     :return: Retorna um Novo token gerado
 
     :raises:
-        ExpiredJSONWebToken: Se o Token fornecido estiver expirado
-
-        InvalidJSONWebTokenError: Caso não seja possível decodificar o Token fornecido. Será considerado inválido
-
         UserNotFoundError: Se não for encontrado o uuid de usuário fornecido pelo Token
 
         AuthNotPermissionError: Quando a conexão do Token (campo 'dest') não for encontrada na lista de conexões de
@@ -102,15 +97,15 @@ def refresh_token(token: Token) -> str:
     connections: Dict[str, str] = user_document_data['connections']
     connection = str(uuid4())
 
-    if not JsonWebToken.is_authenticated_token(token, user_document_data['connections']):
+    if not is_authenticated_token(token, user_document_data['connections']):
         raise AuthNotPermissionError()
 
-    new_token = JsonWebToken.encode(connection, token.uuid)
+    new_token = JWTManager.encode(connection, token.uuid)
 
     del connections[token.dest]
 
     connections[connection] = new_token['at']
-    connections = JsonWebToken.clear_connections(connections)
+    connections = clear_token_connections(connections)
 
     user_document.update({'connections': connections})
 

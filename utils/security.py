@@ -9,34 +9,10 @@ from jose import jwt
 from jose.constants import ALGORITHMS
 from jose.exceptions import JWTError
 from pytz import utc
-from fastapi import Request
+from fastapi import Request, HTTPException
 
 
 _password_hash = PasswordHasher()
-
-
-def encode_password(password: str) -> str:
-    """
-        Gerar hash seguro de senha
-
-    :param password: Senha
-
-    :return: Retorna um hash da senha
-    """
-    return _password_hash.hash(password)
-
-
-def verify_password(password_literal: str, password_hash: str) -> bool:
-    """
-        Verifica se a senha é válida
-
-    :param password_literal: Senha para verificação
-
-    :param password_hash: Hash da senha salvo
-
-    :return: Se a senha é válida
-    """
-    return _password_hash.verify(password_hash, password_literal)
 
 
 class Token:
@@ -47,17 +23,22 @@ class Token:
         self.at = kwargs.get('at')
 
 
-class JsonWebToken:
-    """ Gerenciador de Token de autenticação JWT """
+def is_authenticated_token(token: Token, options: Dict[str, str]) -> bool:
+    """
+       Retorna se o token tem uma conexão com o usuário alvo
 
+    :param token: Token de autenticação decodificado
+
+    :param options: É a lista de conexões de um usuário
+
+    :return: 'True' para existir conexão ou 'False' se não existir
+    """
+    return token.dest in options.keys()
+
+
+class JWTManager:
     string_format = '%Y-%m-%d %H:%M:%S.%f'
     exp_time = timedelta(weeks=4)
-
-    @classmethod
-    def token(cls, request: Request) -> Token:
-        _token = request.headers['Authorization']
-
-        return cls.decode(_token)
 
     @classmethod
     def encode(cls, dest: str, uuid: str) -> Dict[str, str]:
@@ -110,34 +91,68 @@ class JsonWebToken:
         except JWTError:
             raise InvalidJSONWebTokenError()
 
-    @classmethod
-    def is_authenticated_token(cls, token: Token, options: Dict[str, str]) -> bool:
-        """
-           Retorna se o token tem uma conexão com o usuário alvo
 
-        :param token: Token de autenticação decodificado
+def encode_password(password: str) -> str:
+    """
+        Gerar hash seguro de senha
 
-        :param options: É a lista de conexões de um usuário
+    :param password: Senha
 
-        :return: 'True' para existir conexão ou 'False' se não existir
-        """
-        return token.dest in options.keys()
+    :return: Retorna um hash da senha
+    """
+    return _password_hash.hash(password)
 
-    @classmethod
-    def clear_connections(cls, connections: Dict[str, str]) -> Dict[str, str]:
-        """
-            Limpa todas as conexões expiradas de um usuário
 
-        :param connections: Conexões de um usuário
+def verify_password(password_literal: str, password_hash: str) -> bool:
+    """
+        Verifica se a senha é válida
 
-        :return: Retorna um dicionário apenas com conexões ativas
-        """
-        conn: Dict[str, str] = dict()
+    :param password_literal: Senha para verificação
 
-        for connection, at in connections.items():
-            date = datetime.strptime(at, cls.string_format).replace(tzinfo=utc)
+    :param password_hash: Hash da senha salvo
 
-            if not (date + cls.exp_time) < datetime.now(utc):
-                conn.update({connection: at})
+    :return: Se a senha é válida
+    """
+    return _password_hash.verify(password_hash, password_literal)
 
-        return conn
+
+def clear_token_connections(connections: Dict[str, str]) -> Dict[str, str]:
+    """
+        Limpa todas as conexões expiradas de um usuário
+
+    :param connections: Conexões de um usuário
+
+    :return: Retorna um dicionário apenas com conexões ativas
+    """
+    conn: Dict[str, str] = dict()
+
+    for connection, at in connections.items():
+        date = datetime.strptime(at, JWTManager.string_format).replace(tzinfo=utc)
+
+        if not (date + JWTManager.exp_time) < datetime.now(utc):
+            conn.update({connection: at})
+
+    return conn
+
+
+def extract_token_request(request: Request) -> Token:
+    """
+        Extrair dados de um token de autenticação,
+
+    :param request: requisição de um EndPoit
+
+    :return: retorna um token decodificado
+
+    :raises:
+        HTTPException 401: Token inválido
+        HTTPException 419: Token expirado
+    """
+    try:
+        _token = request.headers['Authorization']
+        return JWTManager.decode(_token)
+
+    except InvalidJSONWebTokenError:
+        raise HTTPException(401, 'Unauthorized! Invalid token.')
+
+    except ExpiredJSONWebToken:
+        raise HTTPException(419, 'Connection will expire! authenticate again.')

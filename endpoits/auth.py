@@ -5,7 +5,7 @@ from exceptions.user import *
 from exceptions.jwt import *
 from schemas.auth import *
 from openapi import openapi
-from utils.security import Token
+from utils.security import Token, extract_token_request
 
 from fastapi import APIRouter, HTTPException, Response, Depends
 from fastapi.responses import JSONResponse
@@ -41,14 +41,11 @@ async def login(data: UserLoginSchema) -> JSONResponse:
 
 
 @router.get('/refresh', responses=REFRESH_SCHEMA)
-async def refresh(token: Token = Depends(JsonWebToken.token)) -> JSONResponse:
+async def refresh(token: Token = Depends(extract_token_request)) -> JSONResponse:
     try:
         new_token = await to_thread(refresh_token, token)
 
         return JSONResponse({'token': new_token})
 
-    except (InvalidJSONWebTokenError, UserNotFoundError, AuthNotPermissionError):
-        raise HTTPException(401, 'Unauthorized!')
-
-    except ExpiredJSONWebToken:
-        raise HTTPException(419, 'Connection will expire! authenticate again.')
+    except (UserNotFoundError, AuthNotPermissionError):
+        raise HTTPException(401, 'Unauthorized! Invalid Token.')
