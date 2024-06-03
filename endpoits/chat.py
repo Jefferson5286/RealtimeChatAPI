@@ -13,23 +13,7 @@ router = APIRouter(prefix='/chat')
 connections: Dict[str, WebSocket] = dict()
 
 
-def get_sender_id(token: str) -> str:
-    try:
-        payload = jwt.decode(token, env.SECRET_KEY, [ALGORITHMS.HS256])
-        user_id = payload['id']
-
-        return user_id
-
-    except JWTError:
-        raise InvalidJSONWebTokenError()
-
-
-async def websocket_connection_manager(websocket: WebSocket, token: str):
-    sender = get_sender_id(token)
-
-    if not sender:
-        return
-
+async def websocket_connection_manager(websocket: WebSocket, sender: str):
     connections[sender] = websocket
 
     while True:
@@ -59,7 +43,5 @@ async def chat_of_target(websocket: WebSocket, token: str):
 
     except Exception as e:
         await websocket.close()
-
         print(e)
-
         raise HTTPException(500, 'Internal server Error.')
