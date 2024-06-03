@@ -11,6 +11,78 @@
     }
   ],
   "paths": {
+    "/account/find": {
+      "parameters": [
+        {
+          "name": "uuid",
+          "in": "path",
+          "required": true,
+          "description": "UUID de alvo para procura"
+        }
+      ],
+      "get": {
+        "description": "Retorna detalhes de uma conta baseada no Token de autenticação",
+        "responses": {
+          "200": {
+            "description": "Dados encontrados e enviados",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "username": {"type": "string", "example": "string"},
+                    "email": {"type": "string", "example": "email@exemple.com"},
+                    "profileImageURI": {
+                      "type": "string",
+                      "example": "http://exemple.com/images/profile/1b6e93e9-eb81-4a6c-8238-0c5b7b0d645c"
+                    },
+                    "uuid": {"type": "string", "example": "1b6e93e9-eb81-4a6c-8238-0c5b7b0d645c"}
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Alvo não encontrado",
+            "content": {"text/plain": {"example": "Target not found with uuid=\"1b6e93e9-eb81-4a6c-8238-0c5b7b0d645c\""}}
+          }
+        }
+      }
+    },
+    "/account/details": {
+      "get": {
+        "description": "Retorna detalhes de uma conta baseada no Token de autenticação",
+        "responses": {
+          "200": {
+            "description": "Conta encontrada e Token válido",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "username": {"type": "string", "example": "string"},
+                    "email": {"type": "string", "example": "email@exemple.com"},
+                    "profileImageURI": {
+                      "type": "string",
+                      "example": "http://exemple.com/images/profile/1b6e93e9-eb81-4a6c-8238-0c5b7b0d645c"
+                    },
+                    "uuid": {"type": "string", "example": "1b6e93e9-eb81-4a6c-8238-0c5b7b0d645c"}
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token inválido. Impossível decodificar",
+            "content": {"text/plain": {"example": "\"Unauthorized! Inválid token.\""}}
+          },
+          "419": {
+            "description": "O token fornecido já foi expirado! Necessário fazer autenticação novamente.",
+            "content": {"text/plain": {"example": "Connection will expire! authenticate again."}}
+          }
+        }
+      }
+    },
     "/auth/refresh": {
       "get": {
         "description": "Atualiza uma autenticação com o usuário, invalidando o Token de e gerando um novo",
@@ -42,7 +114,7 @@
           },
           "401": {
             "description": "Pode ocorrer quando:\n\tO Token não pôde ser decodificado, sendo considerado inválido;\nO uuid de usuário contido no Token não é registrado no banco de dados\n;Não existe um protocolo equivalente com o fornecido pelo Token, com os protocolos contidos no banco de dados.",
-            "content": {"text/plain": {"example": "Unauthorized"}}
+            "content": {"text/plain": {"example": "Unauthorized! Invalid Token"}}
           },
           "419": {
             "description": "O token fornecido já foi expirado! Necessário fazer autenticação novamente.",
@@ -119,5 +191,6 @@
         }
       }
     }
+
   }
 }

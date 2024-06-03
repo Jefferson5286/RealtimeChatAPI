@@ -1,12 +1,6 @@
 from typing import Dict
 
-from exceptions.jwt import InvalidJSONWebTokenError
-from config import env
-
-from fastapi import WebSocket, WebSocketDisconnect, APIRouter, HTTPException, Depends
-from jose import jwt
-from jose.constants import ALGORITHMS
-from jose.exceptions import JWTError
+from fastapi import WebSocket, APIRouter, HTTPException
 
 
 router = APIRouter(prefix='/chat')
@@ -25,21 +19,13 @@ async def websocket_connection_manager(websocket: WebSocket, sender: str):
         if target in connections.keys():
             target_socket = connections[target]
 
-            await target_socket.send_json({
-                'message': message,
-                'sender': sender
-            })
+            await target_socket.send_json({'message': message, 'sender': sender})
 
 
 @router.websocket('/{token}')
 async def chat_of_target(websocket: WebSocket, token: str):
     try:
         await websocket_connection_manager(websocket, token)
-
-    except InvalidJSONWebTokenError:
-        await websocket.close()
-
-        raise HTTPException(401, 'Unauthorized!')
 
     except Exception as e:
         await websocket.close()

@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.utils import get_openapi
 
-from endpoits import auth, chat
+from endpoits import auth, chat, account
 from config import env
 from openapi import openapi as openapi_data
 
@@ -20,6 +20,7 @@ app.add_middleware(
 
 app.include_router(auth.router)
 app.include_router(chat.router)
+app.include_router(account.router)
 
 
 def openapi():
