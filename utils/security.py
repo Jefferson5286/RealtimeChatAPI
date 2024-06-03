@@ -1,4 +1,4 @@
-from typing import Dict, Tuple
+from typing import Dict
 from datetime import datetime, timedelta
 
 from config import env
@@ -9,6 +9,7 @@ from jose import jwt
 from jose.constants import ALGORITHMS
 from jose.exceptions import JWTError
 from pytz import utc
+from fastapi import Request
 
 
 _password_hash = PasswordHasher()
@@ -53,7 +54,13 @@ class JsonWebToken:
     exp_time = timedelta(weeks=4)
 
     @classmethod
-    def encode(cls, dest: str, uuid: str) -> Tuple[str, str]:
+    def token(cls, request: Request) -> Token:
+        _token = request.headers['Authorization']
+
+        return cls.decode(_token)
+
+    @classmethod
+    def encode(cls, dest: str, uuid: str) -> Dict[str, str]:
         """
             Gera um novo token JWT
 
@@ -71,7 +78,7 @@ class JsonWebToken:
 
         token = jwt.encode(claims, env.SECRET_KEY)
 
-        return token, claims['at']
+        return {'token': token, 'at': claims['at']}
 
     @classmethod
     def decode(cls, token: str) -> Token:
