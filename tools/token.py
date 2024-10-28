@@ -1,0 +1,1 @@
+#todo: implementar o sistema de codificação e decodificação de JWT.
